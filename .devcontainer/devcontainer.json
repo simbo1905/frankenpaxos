@@ -1,0 +1,20 @@
+{
+  "name": "frankenpaxos (sbt 1.1.6, Java 8)",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "8",
+      "distribution": "temurin"
+    },
+    "ghcr.io/devcontainers/features/sbt:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["scala-lang.scala"]
+    }
+  },
+  "postCreateCommand": "sbt sbtVersion"
+}

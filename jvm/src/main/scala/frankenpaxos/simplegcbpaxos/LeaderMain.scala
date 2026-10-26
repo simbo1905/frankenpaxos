@@ -8,7 +8,6 @@ import frankenpaxos.NettyTcpAddress
 import frankenpaxos.NettyTcpTransport
 import frankenpaxos.PrintLogger
 import frankenpaxos.PrometheusUtil
-import frankenpaxos.depgraph.JgraphtDependencyGraph
 import frankenpaxos.statemachine.KeyValueStore
 import frankenpaxos.thrifty.ThriftySystem
 import io.prometheus.client.exporter.HTTPServer

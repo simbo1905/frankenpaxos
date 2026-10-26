@@ -14,8 +14,6 @@ import scala.collection.mutable.ListBuffer
 
 class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
   private val tarjanMetrics = new TarjanDependencyGraphMetrics(FakeCollectors)
-  private def jgraph =
-    new JgraphtDependencyGraph[Int, Int, IntPrefixSet](IntPrefixSet())
   private def scala =
     new ScalaGraphDependencyGraph[Int, Int, IntPrefixSet](IntPrefixSet())
   private def tarjan =
@@ -31,7 +29,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(0))
       graph.executeByComponent(None)._1 shouldBe Seq()
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -46,7 +43,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.commit(0, 2, IntPrefixSet(Set(1)))
       graph.executeByComponent(None)._1 shouldBe Seq()
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -64,7 +60,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(3))
       graph.executeByComponent(None)._1 shouldBe Seq()
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -85,7 +80,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
                                                      Seq(3))
       graph.executeByComponent(None)._1 shouldBe Seq()
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -106,7 +100,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
                                                      Seq(3))
       graph.executeByComponent(None)._1 shouldBe Seq()
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -119,7 +112,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.commit(1, 0, IntPrefixSet(Set(0)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(0, 1))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -132,7 +124,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.commit(1, 0, IntPrefixSet(Set(0)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(1, 0))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -147,7 +138,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.commit(2, 0, IntPrefixSet(Set(0)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(0, 1, 2))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -162,7 +152,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.commit(2, 2, IntPrefixSet(Set(0)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(1, 0, 2))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -193,7 +182,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.commit(6, 1, IntPrefixSet(Set(4, 5)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(5, 6))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -219,7 +207,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
         Seq(Seq(0), Seq(1, 2), Seq(4), Seq(3), Seq(5, 6))
       ) should contain(graph.executeByComponent(None)._1)
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -242,7 +229,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.commit(3, 0, IntPrefixSet(Set(1, 2)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(3), Seq(5, 6))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
   }
@@ -264,7 +250,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
         Seq(Seq(6), Seq(5), Seq(1, 2), Seq(3, 4, 7, 8), Seq(0))
       ) should contain(graph.executeByComponent(None)._1)
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     test(incremental)
@@ -277,7 +262,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.updateExecuted(IntPrefixSet(Set(0)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(1))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     // TODO(mwhittaker): Test incremental.
@@ -293,7 +277,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.updateExecuted(IntPrefixSet(Set(0)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(1), Seq(2), Seq(3))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     // TODO(mwhittaker): Test incremental.
@@ -316,7 +299,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
         Seq(Seq(3), Seq(2), Seq(1))
       ) should contain(graph.executeByComponent(None)._1)
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     // TODO(mwhittaker): Test incremental.
@@ -332,7 +314,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.updateExecuted(IntPrefixSet(Set(0, 1)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(2), Seq(3))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     // TODO(mwhittaker): Test incremental.
@@ -350,7 +331,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       graph.updateExecuted(IntPrefixSet(Set(0, 1, 2, 3, 4, 5)))
       graph.executeByComponent(None)._1 shouldBe Seq(Seq(6, 7))
     }
-    test(jgraph)
     test(scala)
     test(tarjan)
     // TODO(mwhittaker): Test incremental.
@@ -381,8 +361,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
       } yield (k, s, Set() ++ d)
 
       forAll(nodesGen) { (nodes: Seq[(Int, Int, Set[Int])]) =>
-        val jgrapht =
-          new JgraphtDependencyGraph[Int, Int, IntPrefixSet](IntPrefixSet())
         val scalagraph =
           new ScalaGraphDependencyGraph[Int, Int, IntPrefixSet](IntPrefixSet())
         val tarjan =
@@ -393,7 +371,6 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
             IntPrefixSet()
           )
         for ((id, sequenceNumber, dependencies) <- nodes) {
-          jgrapht.commit(id, sequenceNumber, IntPrefixSet(dependencies - id))
           scalagraph.commit(id, sequenceNumber, IntPrefixSet(dependencies - id))
           tarjan.commit(id, sequenceNumber, IntPrefixSet(dependencies - id))
           incremental.commit(id,
@@ -402,21 +379,19 @@ class DependencyGraphTest extends FlatSpec with Matchers with PropertyChecks {
         }
 
         // If numVertices is equal to maxVertex, then every dependency is
-        // committed. In this case, all four graph algorithms should behave
+        // committed. In this case, all graph algorithms should behave
         // identically. Otherwise, all the graphs except for
         // IncrementalTarjanDependencyGraph behave identically.
         //
         // Note that we check that the graphs have the same elements. It's
         // possible that they return elements in different orders, though, so
         // they may not be exactly equal.
-        val jgraphtOutput = f(jgrapht)
         val scalagraphOutput = f(scalagraph)
         val tarjanOutput = f(tarjan)
         val incrementalOutput = f(incremental)
-        equals(jgraphtOutput, scalagraphOutput)
-        equals(jgraphtOutput, tarjanOutput)
+        equals(scalagraphOutput, tarjanOutput)
         if (numVertices == maxVertex) {
-          equals(jgraphtOutput, incrementalOutput)
+          equals(scalagraphOutput, incrementalOutput)
         }
       }
     }

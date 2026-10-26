@@ -14,52 +14,52 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class MultiPaxos(val f: Int, batched: Boolean, flexible: Boolean, seed: Long) {
+class TweenedMultiPaxos(val f: Int, batched: Boolean, flexible: Boolean, seed: Long) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2
-  val numBatchers = if (batched) {
+  val numTestClients = 2
+  val numTestBatchers = if (batched) {
     f + 1
   } else {
     0
   }
-  val numLeaders = f + 1
-  val numProxyLeaders = f + 1
-  val numAcceptorGroups = 2
-  val numAcceptors = if (!flexible) {
+  val numTestLeaders = f + 1
+  val numTestProxyLeaders = f + 1
+  val numTestAcceptorGroups = 2
+  val numTestAcceptors = if (!flexible) {
     2 * f + 1
   } else {
     (f + 1) * (f + 1)
   }
-  val numReplicas = f + 1
-  val numProxyReplicas = f + 1
+  val numTestReplicas = f + 1
+  val numTestProxyReplicas = f + 1
 
   val config = Config[FakeTransport](
     f = f,
     batcherAddresses =
-      (1 to numBatchers).map(i => FakeTransportAddress(s"Batcher $i")),
+      (1 to numTestBatchers).map(i => FakeTransportAddress(s"Batcher $i")),
     readBatcherAddresses =
-      (1 to numBatchers).map(i => FakeTransportAddress(s"ReadBatcher $i")),
+      (1 to numTestBatchers).map(i => FakeTransportAddress(s"ReadBatcher $i")),
     leaderAddresses =
-      (1 to numLeaders).map(i => FakeTransportAddress(s"Leader $i")),
+      (1 to numTestLeaders).map(i => FakeTransportAddress(s"Leader $i")),
     leaderElectionAddresses =
-      (1 to numLeaders).map(i => FakeTransportAddress(s"LeaderElection $i")),
+      (1 to numTestLeaders).map(i => FakeTransportAddress(s"LeaderElection $i")),
     proxyLeaderAddresses =
-      (1 to numProxyLeaders).map(i => FakeTransportAddress(s"ProxyLeader $i")),
-    acceptorAddresses = for (g <- 0 to numAcceptorGroups)
+      (1 to numTestProxyLeaders).map(i => FakeTransportAddress(s"ProxyLeader $i")),
+    acceptorAddresses = for (g <- 0 to numTestAcceptorGroups)
       yield {
-        (1 to numAcceptors).map(i => FakeTransportAddress(s"Acceptor $g.$i")),
+        (1 to numTestAcceptors).map(i => FakeTransportAddress(s"Acceptor $g.$i")),
       },
     replicaAddresses =
-      (1 to numReplicas).map(i => FakeTransportAddress(s"Replica $i")),
-    proxyReplicaAddresses = (1 to numProxyReplicas)
+      (1 to numTestReplicas).map(i => FakeTransportAddress(s"Replica $i")),
+    proxyReplicaAddresses = (1 to numTestProxyReplicas)
       .map(i => FakeTransportAddress(s"ProxyReplica $i")),
     flexible = flexible,
     distributionScheme = Hash
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -201,7 +201,7 @@ class SimulatedMultiPaxos(val f: Int, batched: Boolean, flexible: Boolean)
     extends SimulatedSystem {
   import SimulatedMultiPaxos._
 
-  override type System = MultiPaxos
+  override type System = TweenedMultiPaxos
   // For every replica, we record the prefix of the log that has been executed.
   override type State = mutable.Buffer[Seq[CommandBatchOrNoop]]
   override type Command = SimulatedMultiPaxos.Command
@@ -212,7 +212,7 @@ class SimulatedMultiPaxos(val f: Int, batched: Boolean, flexible: Boolean)
   var valueChosen: Boolean = false
 
   override def newSystem(seed: Long): System =
-    new MultiPaxos(f, batched, flexible, seed)
+    new TweenedMultiPaxos(f, batched, flexible, seed)
 
   override def getState(paxos: System): State = {
     val logs = mutable.Buffer[Seq[CommandBatchOrNoop]]()
@@ -229,29 +229,29 @@ class SimulatedMultiPaxos(val f: Int, batched: Boolean, flexible: Boolean)
   override def generateCommand(paxos: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Write.
-      paxos.numClients * 3 -> {
+      paxos.numTestClients * 3 -> {
         for {
-          clientId <- Gen.choose(0, paxos.numClients - 1)
+          clientId <- Gen.choose(0, paxos.numTestClients - 1)
           request <- Gen.alphaLowerStr.filter(_.size > 0)
         } yield Write(clientId, clientPseudonym = 0, request)
 
       },
       // Read.
-      paxos.numClients -> {
+      paxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, paxos.numClients - 1)
+          clientId <- Gen.choose(0, paxos.numTestClients - 1)
         } yield Read(clientId, clientPseudonym = 0)
       },
       // Sequential Read.
-      paxos.numClients -> {
+      paxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, paxos.numClients - 1)
+          clientId <- Gen.choose(0, paxos.numTestClients - 1)
         } yield SequentialRead(clientId, clientPseudonym = 0)
       },
       // Eventual Read.
-      paxos.numClients -> {
+      paxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, paxos.numClients - 1)
+          clientId <- Gen.choose(0, paxos.numTestClients - 1)
         } yield EventualRead(clientId, clientPseudonym = 0)
       }
     )

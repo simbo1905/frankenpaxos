@@ -15,34 +15,34 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class FastMultiPaxos(
+class TestedFastMultiPaxos(
     val f: Int,
     val roundSystem: RoundSystem
 ) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = f + 1
-  val numLeaders = f + 1
-  val numAcceptors = 2 * f + 1
+  val numTestClients = f + 1
+  val numTestLeaders = f + 1
+  val numTestAcceptors = 2 * f + 1
 
   // Configuration.
   val config = Config[FakeTransport](
     f = f,
-    leaderAddresses = for (i <- 1 to numLeaders)
+    leaderAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Leader $i"),
-    leaderElectionAddresses = for (i <- 1 to numLeaders)
+    leaderElectionAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Leader Election $i"),
-    leaderHeartbeatAddresses = for (i <- 1 to numLeaders)
+    leaderHeartbeatAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Leader Heartbeat $i"),
-    acceptorAddresses = for (i <- 1 to numAcceptors)
+    acceptorAddresses = for (i <- 1 to numTestAcceptors)
       yield FakeTransportAddress(s"Acceptor $i"),
-    acceptorHeartbeatAddresses = for (i <- 1 to numAcceptors)
+    acceptorHeartbeatAddresses = for (i <- 1 to numTestAcceptors)
       yield FakeTransportAddress(s"Acceptor Heartbeat $i"),
-    roundSystem = new RoundSystem.MixedRoundRobin(numLeaders)
+    roundSystem = new RoundSystem.MixedRoundRobin(numTestLeaders)
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients)
+  val clients = for (i <- 1 to numTestClients)
     yield
       new Client[FakeTransport](FakeTransportAddress(s"Client $i"),
                                 transport,
@@ -52,7 +52,7 @@ class FastMultiPaxos(
                                 new ClientMetrics(FakeCollectors))
 
   // Leaders.
-  val leaders = for (i <- 1 to numLeaders) yield {
+  val leaders = for (i <- 1 to numTestLeaders) yield {
     val options = LeaderOptions.default.copy(
       thriftySystem = ThriftySystem.NotThrifty,
       phase2aMaxBufferSize = 2,
@@ -68,7 +68,7 @@ class FastMultiPaxos(
   }
 
   // Acceptors.
-  val acceptors = for (i <- 1 to numAcceptors) yield {
+  val acceptors = for (i <- 1 to numTestAcceptors) yield {
     val options = AcceptorOptions.default.copy(
       waitPeriod = java.time.Duration.ofMillis(10),
       waitStagger = java.time.Duration.ofMillis(10)
@@ -96,7 +96,7 @@ class SimulatedFastMultiPaxos(
   import SimulatedFastMultiPaxos._
 
   type Slot = Int
-  override type System = FastMultiPaxos
+  override type System = TestedFastMultiPaxos
   // The state of FastMultiPaxos records the set of chosen entries for every
   // log slot. Every set should be empty or a singleton.
   override type State = collection.SortedMap[Slot, Set[Leader.Entry]]
@@ -105,7 +105,7 @@ class SimulatedFastMultiPaxos(
   var valueChosen: Boolean = false
 
   override def newSystem(seed: Long): System =
-    new FastMultiPaxos(f, roundSystem)
+    new TestedFastMultiPaxos(f, roundSystem)
 
   override def getState(fastMultiPaxos: System): State = {
     // Merge two States together, taking a pairwise union.
@@ -162,9 +162,9 @@ class SimulatedFastMultiPaxos(
     val subgens = mutable.Buffer[(Int, Gen[Command])]()
 
     // Propose.
-    subgens += fastMultiPaxos.numClients -> {
+    subgens += fastMultiPaxos.numTestClients -> {
       for {
-        clientId <- Gen.choose(0, fastMultiPaxos.numClients - 1)
+        clientId <- Gen.choose(0, fastMultiPaxos.numTestClients - 1)
         clientPseudonym <- Gen.choose(0, 1)
         value <- Gen.listOfN(10, Gen.alphaLowerChar).map(_.mkString(""))
       } yield Propose(clientId, clientPseudonym, value)

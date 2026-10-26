@@ -14,7 +14,7 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class MatchmakerMultiPaxos(
+class TweenedMatchmakerMultiPaxos(
     val f: Int,
     seed: Long,
     stallDuringMatchmaking: Boolean,
@@ -23,31 +23,31 @@ class MatchmakerMultiPaxos(
 ) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2
-  val numLeaders = f + 1
-  val numReconfigurers = f + 1
-  val numMatchmakers = 2 * (2 * f + 1)
-  val numAcceptors = 2 * (2 * f + 1)
-  val numReplicas = 2 * f + 1
+  val numTestClients = 2
+  val numTestLeaders = f + 1
+  val numTestReconfigurers = f + 1
+  val numTestMatchmakers = 2 * (2 * f + 1)
+  val numTestAcceptors = 2 * (2 * f + 1)
+  val numTestReplicas = 2 * f + 1
 
   val config = Config[FakeTransport](
     f = f,
     leaderAddresses =
-      (1 to numLeaders).map(i => FakeTransportAddress(s"Leader $i")),
+      (1 to numTestLeaders).map(i => FakeTransportAddress(s"Leader $i")),
     leaderElectionAddresses =
-      (1 to numLeaders).map(i => FakeTransportAddress(s"LeaderElection $i")),
-    reconfigurerAddresses = (1 to numReconfigurers)
+      (1 to numTestLeaders).map(i => FakeTransportAddress(s"LeaderElection $i")),
+    reconfigurerAddresses = (1 to numTestReconfigurers)
       .map(i => FakeTransportAddress(s"Reconfigurer $i")),
     matchmakerAddresses =
-      (1 to numMatchmakers).map(i => FakeTransportAddress(s"Matchmaker $i")),
+      (1 to numTestMatchmakers).map(i => FakeTransportAddress(s"Matchmaker $i")),
     acceptorAddresses =
-      (1 to numAcceptors).map(i => FakeTransportAddress(s"Acceptor $i")),
+      (1 to numTestAcceptors).map(i => FakeTransportAddress(s"Acceptor $i")),
     replicaAddresses =
-      (1 to numReplicas).map(i => FakeTransportAddress(s"Replica $i"))
+      (1 to numTestReplicas).map(i => FakeTransportAddress(s"Replica $i"))
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -150,7 +150,7 @@ class SimulatedMatchmakerMultiPaxos(
 ) extends SimulatedSystem {
   import SimulatedMatchmakerMultiPaxos._
 
-  override type System = MatchmakerMultiPaxos
+  override type System = TweenedMatchmakerMultiPaxos
   // For every replica, we record the prefix of the log that has been executed.
   override type State = mutable.Buffer[Seq[CommandOrNoop]]
   override type Command = SimulatedMatchmakerMultiPaxos.Command
@@ -161,7 +161,7 @@ class SimulatedMatchmakerMultiPaxos(
   var valueChosen: Boolean = false
 
   override def newSystem(seed: Long): System =
-    new MatchmakerMultiPaxos(f,
+    new TweenedMatchmakerMultiPaxos(f,
                              seed,
                              stallDuringMatchmaking = stallDuringMatchmaking,
                              stallDuringPhase1 = stallDuringPhase1,
@@ -183,9 +183,9 @@ class SimulatedMatchmakerMultiPaxos(
   override def generateCommand(paxos: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      paxos.numClients -> {
+      paxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, paxos.numClients - 1)
+          clientId <- Gen.choose(0, paxos.numTestClients - 1)
           request <- Gen.alphaLowerStr
         } yield Propose(clientId, clientPseudonym = 0, request)
       }

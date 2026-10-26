@@ -4,7 +4,8 @@ import VertexIdHelpers.vertexIdOrdering
 import frankenpaxos.Util
 import frankenpaxos.Util.MapHelpers
 import frankenpaxos.compact.FakeCompactSet
-import frankenpaxos.depgraph.JgraphtDependencyGraph
+import frankenpaxos.depgraph.TarjanDependencyGraph
+import frankenpaxos.depgraph.TarjanDependencyGraphMetrics
 import frankenpaxos.monitoring.FakeCollectors
 import frankenpaxos.simulator.FakeLogger
 import frankenpaxos.simulator.FakeTransport
@@ -20,27 +21,27 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class UnanimousBPaxos(val f: Int) {
+class TweenedUnanimousBPaxos(val f: Int) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2 * f + 1
-  val numLeaders = f + 1
-  val numDepServiceNodes = 2 * f + 1
-  val numAcceptors = 2 * f + 1
+  val numTestClients = 2 * f + 1
+  val numTestLeaders = f + 1
+  val numTestDepServiceNodes = 2 * f + 1
+  val numTestAcceptors = 2 * f + 1
 
   // Configuration.
   val config = Config[FakeTransport](
     f = f,
-    leaderAddresses = for (i <- 1 to numLeaders)
+    leaderAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Leader $i"),
-    depServiceNodeAddresses = for (i <- 1 to numDepServiceNodes)
+    depServiceNodeAddresses = for (i <- 1 to numTestDepServiceNodes)
       yield FakeTransportAddress(s"Dep Service Node $i"),
-    acceptorAddresses = for (i <- 1 to numAcceptors)
+    acceptorAddresses = for (i <- 1 to numTestAcceptors)
       yield FakeTransportAddress(s"Acceptor $i")
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -52,15 +53,16 @@ class UnanimousBPaxos(val f: Int) {
   }
 
   // Leaders.
-  val leaders = for (i <- 1 to numLeaders) yield {
+  val leaders = for (i <- 1 to numTestLeaders) yield {
     new Leader[FakeTransport](
       address = FakeTransportAddress(s"Leader $i"),
       transport = transport,
       logger = new FakeLogger(),
       config = config,
       stateMachine = new KeyValueStore(),
-      dependencyGraph = new JgraphtDependencyGraph(
-        new FakeCompactSet[VertexId]()
+      dependencyGraph = new TarjanDependencyGraph(
+        new FakeCompactSet[VertexId](),
+        new TarjanDependencyGraphMetrics(FakeCollectors)
       ),
       options = LeaderOptions.default,
       metrics = new LeaderMetrics(FakeCollectors)
@@ -68,7 +70,7 @@ class UnanimousBPaxos(val f: Int) {
   }
 
   // DepServiceNodes.
-  val depServiceNodes = for (i <- 1 to numDepServiceNodes) yield {
+  val depServiceNodes = for (i <- 1 to numTestDepServiceNodes) yield {
     new DepServiceNode[FakeTransport](
       address = FakeTransportAddress(s"Dep Service Node $i"),
       transport = transport,
@@ -81,7 +83,7 @@ class UnanimousBPaxos(val f: Int) {
   }
 
   // Acceptors.
-  val acceptors = for (i <- 1 to numAcceptors) yield {
+  val acceptors = for (i <- 1 to numTestAcceptors) yield {
     new Acceptor[FakeTransport](
       address = FakeTransportAddress(s"Acceptor $i"),
       transport = transport,
@@ -106,7 +108,7 @@ object SimulatedUnanimousBPaxos {
 class SimulatedUnanimousBPaxos(val f: Int) extends SimulatedSystem {
   import SimulatedUnanimousBPaxos._
 
-  override type System = UnanimousBPaxos
+  override type System = TweenedUnanimousBPaxos
   // For each vertex id, we record the set of chosen VoteValues. If everything
   // is correct, every set should contain at most one vote value.
   override type State = Map[VertexId, Set[Acceptor.VoteValue]]
@@ -115,7 +117,7 @@ class SimulatedUnanimousBPaxos(val f: Int) extends SimulatedSystem {
   // True if some value has been chosen in some execution of the system.
   var valueChosen: Boolean = false
 
-  override def newSystem(seed: Long): System = new UnanimousBPaxos(f)
+  override def newSystem(seed: Long): System = new TweenedUnanimousBPaxos(f)
 
   override def getState(bpaxos: System): State = {
     // Merge two States together, taking a pairwise union.
@@ -152,9 +154,9 @@ class SimulatedUnanimousBPaxos(val f: Int) extends SimulatedSystem {
 
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      bpaxos.numClients -> {
+      bpaxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, bpaxos.numClients - 1)
+          clientId <- Gen.choose(0, bpaxos.numTestClients - 1)
           clientPseudonym <- Gen.choose(0, 2)
           request <- Gen.oneOf(KeyValueStore.getOneOf(keys),
                                KeyValueStore.setOneOf(keyValues))

@@ -194,19 +194,17 @@ abstract class DependencyGraph[
 
 object DependencyGraph {
   sealed trait DependencyGraphType
-  case object Jgrapht extends DependencyGraphType
   case object ScalaGraph extends DependencyGraphType
   case object Tarjan extends DependencyGraphType
   case object IncrementalTarjan extends DependencyGraphType
 
   implicit val read: scopt.Read[DependencyGraphType] = scopt.Read.reads({
-    case "Jgrapht"           => Jgrapht
     case "ScalaGraph"        => ScalaGraph
     case "Tarjan"            => Tarjan
     case "IncrementalTarjan" => IncrementalTarjan
     case x =>
       throw new IllegalArgumentException(
-        s"$x is not one of Jgrapht, ScalaGraph, Tarjan, or IncrementalTarjan."
+        s"$x is not one of ScalaGraph, Tarjan, or IncrementalTarjan."
       )
   })
 
@@ -215,8 +213,6 @@ object DependencyGraph {
       sequenceNumberOrdering: Ordering[S]
   ): scopt.Read[(KSet) => DependencyGraph[K, S, KSet]] = {
     scopt.Read.reads({
-      case "Jgrapht" =>
-        emptyKeySet => new JgraphtDependencyGraph[K, S, KSet](emptyKeySet)
       case "ScalaGraph" =>
         emptyKeySet => new ScalaGraphDependencyGraph[K, S, KSet](emptyKeySet)
       case "Tarjan" =>
@@ -226,7 +222,7 @@ object DependencyGraph {
           new IncrementalTarjanDependencyGraph[K, S, KSet](emptyKeySet)
       case x =>
         throw new IllegalArgumentException(
-          s"$x is not one of Jgrapht, ScalaGraph, Tarjan, or IncrementalTarjan."
+          s"$x is not one of ScalaGraph, Tarjan, or IncrementalTarjan."
         )
     })
   }

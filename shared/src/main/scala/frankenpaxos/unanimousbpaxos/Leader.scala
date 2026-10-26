@@ -10,7 +10,9 @@ import frankenpaxos.Util
 import frankenpaxos.clienttable.ClientTable
 import frankenpaxos.compact.FakeCompactSet
 import frankenpaxos.depgraph.DependencyGraph
-import frankenpaxos.depgraph.JgraphtDependencyGraph
+import frankenpaxos.depgraph.TarjanDependencyGraph
+import frankenpaxos.depgraph.TarjanDependencyGraphMetrics
+import frankenpaxos.monitoring.FakeCollectors
 import frankenpaxos.monitoring.Collectors
 import frankenpaxos.monitoring.Counter
 import frankenpaxos.monitoring.Gauge
@@ -236,7 +238,10 @@ class Leader[Transport <: frankenpaxos.Transport[Transport]](
       VertexId,
       Unit,
       FakeCompactSet[VertexId]
-    ] = new JgraphtDependencyGraph(new FakeCompactSet[VertexId]()),
+    ] = new TarjanDependencyGraph(
+      new FakeCompactSet[VertexId](),
+      new TarjanDependencyGraphMetrics(FakeCollectors)
+    ),
     options: LeaderOptions = LeaderOptions.default,
     metrics: LeaderMetrics = new LeaderMetrics(PrometheusCollectors)
 ) extends Actor(address, transport, logger) {

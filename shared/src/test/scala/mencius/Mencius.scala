@@ -14,53 +14,53 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class Mencius(val f: Int, batched: Boolean, seed: Long) {
+class TweenedMencius(val f: Int, batched: Boolean, seed: Long) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2
-  val numBatchers = if (batched) {
+  val numTestClients = 2
+  val numTestBatchers = if (batched) {
     f + 1
   } else {
     0
   }
-  val numLeaderGroups = 2
-  val numLeadersPerGroup = f + 1
-  val numProxyLeaders = f + 1
-  val numAcceptorGroupsPerLeaderGroup = 2
-  val numAcceptorsPerGroup = 2 * f + 1
-  val numReplicas = f + 1
-  val numProxyReplicas = f + 1
+  val numTestLeaderGroups = 2
+  val numTestLeadersPerGroup = f + 1
+  val numTestProxyLeaders = f + 1
+  val numTestAcceptorGroupsPerLeaderGroup = 2
+  val numTestAcceptorsPerGroup = 2 * f + 1
+  val numTestReplicas = f + 1
+  val numTestProxyReplicas = f + 1
 
   val config = Config[FakeTransport](
     f = f,
     batcherAddresses =
-      (1 to numBatchers).map(i => FakeTransportAddress(s"Batcher $i")),
-    leaderAddresses = for (i <- 1 to numLeaderGroups) yield {
-      for (j <- 1 to numLeadersPerGroup)
+      (1 to numTestBatchers).map(i => FakeTransportAddress(s"Batcher $i")),
+    leaderAddresses = for (i <- 1 to numTestLeaderGroups) yield {
+      for (j <- 1 to numTestLeadersPerGroup)
         yield FakeTransportAddress(s"Leader $i.$j")
 
     },
-    leaderElectionAddresses = for (i <- 1 to numLeaderGroups) yield {
-      for (j <- 1 to numLeadersPerGroup)
+    leaderElectionAddresses = for (i <- 1 to numTestLeaderGroups) yield {
+      for (j <- 1 to numTestLeadersPerGroup)
         yield FakeTransportAddress(s"LeaderElection $i.$j")
     },
     proxyLeaderAddresses =
-      (1 to numProxyLeaders).map(i => FakeTransportAddress(s"ProxyLeader $i")),
-    acceptorAddresses = for (i <- 1 to numLeaderGroups) yield {
-      for (j <- 1 to numAcceptorGroupsPerLeaderGroup) yield {
-        for (k <- 1 to numAcceptorsPerGroup)
+      (1 to numTestProxyLeaders).map(i => FakeTransportAddress(s"ProxyLeader $i")),
+    acceptorAddresses = for (i <- 1 to numTestLeaderGroups) yield {
+      for (j <- 1 to numTestAcceptorGroupsPerLeaderGroup) yield {
+        for (k <- 1 to numTestAcceptorsPerGroup)
           yield FakeTransportAddress(s"Acceptor $i.$j.$k")
       }
     },
     replicaAddresses =
-      (1 to numReplicas).map(i => FakeTransportAddress(s"Replica $i")),
-    proxyReplicaAddresses = (1 to numProxyReplicas)
+      (1 to numTestReplicas).map(i => FakeTransportAddress(s"Replica $i")),
+    proxyReplicaAddresses = (1 to numTestProxyReplicas)
       .map(i => FakeTransportAddress(s"ProxyReplica $i")),
     distributionScheme = Hash
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -177,7 +177,7 @@ object SimulatedMencius {
 class SimulatedMencius(val f: Int, batched: Boolean) extends SimulatedSystem {
   import SimulatedMencius._
 
-  override type System = Mencius
+  override type System = TweenedMencius
   // For every replica, we record the prefix of the log that has been executed.
   override type State = mutable.Buffer[Seq[CommandBatchOrNoop]]
   override type Command = SimulatedMencius.Command
@@ -187,7 +187,7 @@ class SimulatedMencius(val f: Int, batched: Boolean) extends SimulatedSystem {
   // liveness. If no value is every chosen, then clearly something is wrong.
   var valueChosen: Boolean = false
 
-  override def newSystem(seed: Long): System = new Mencius(f, batched, seed)
+  override def newSystem(seed: Long): System = new TweenedMencius(f, batched, seed)
 
   override def getState(paxos: System): State = {
     val logs = mutable.Buffer[Seq[CommandBatchOrNoop]]()
@@ -204,9 +204,9 @@ class SimulatedMencius(val f: Int, batched: Boolean) extends SimulatedSystem {
   override def generateCommand(paxos: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      paxos.numClients -> {
+      paxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, paxos.numClients - 1)
+          clientId <- Gen.choose(0, paxos.numTestClients - 1)
           request <- Gen.alphaLowerStr
         } yield Propose(clientId, clientPseudonym = 0, request)
       }

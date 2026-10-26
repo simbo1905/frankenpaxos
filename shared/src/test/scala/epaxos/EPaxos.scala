@@ -19,21 +19,21 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class EPaxos(val f: Int) {
+class TestedEPaxos(val f: Int) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = f + 1
-  val numReplicas = 2 * f + 1
+  val numTestClients = f + 1
+  val numTestReplicas = 2 * f + 1
 
   // Configuration.
   val config = Config[FakeTransport](
     f = f,
-    replicaAddresses = for (i <- 1 to numReplicas)
+    replicaAddresses = for (i <- 1 to numTestReplicas)
       yield FakeTransportAddress(s"Replica $i")
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients)
+  val clients = for (i <- 1 to numTestClients)
     yield
       new Client[FakeTransport](FakeTransportAddress(s"Client $i"),
                                 transport,
@@ -43,7 +43,7 @@ class EPaxos(val f: Int) {
                                 metrics = new ClientMetrics(FakeCollectors))
 
   // Replicas
-  val replicas = for (i <- 1 to numReplicas)
+  val replicas = for (i <- 1 to numTestReplicas)
     yield
       new Replica[FakeTransport](
         FakeTransportAddress(s"Replica $i"),
@@ -52,7 +52,7 @@ class EPaxos(val f: Int) {
         config,
         stateMachine = new KeyValueStore(),
         dependencyGraph = new TarjanDependencyGraph(
-          InstancePrefixSet(numReplicas),
+          InstancePrefixSet(numTestReplicas),
           new TarjanDependencyGraphMetrics(FakeCollectors)
         ),
         options = ReplicaOptions.default,
@@ -73,7 +73,7 @@ object SimulatedEPaxos {
 class SimulatedEPaxos(val f: Int) extends SimulatedSystem {
   import SimulatedEPaxos._
 
-  override type System = EPaxos
+  override type System = TestedEPaxos
   // TODO(mwhittaker): Implement.
   override type State = Map[Instance, Set[Replica.CommandTriple]]
   override type Command = SimulatedEPaxos.Command
@@ -81,7 +81,7 @@ class SimulatedEPaxos(val f: Int) extends SimulatedSystem {
   // True if some value has been chosen in some execution of the system.
   var valueChosen: Boolean = false
 
-  override def newSystem(seed: Long): System = new EPaxos(f)
+  override def newSystem(seed: Long): System = new TestedEPaxos(f)
 
   override def getState(epaxos: System): State = {
     // Merge two States together, taking a pairwise union.
@@ -116,9 +116,9 @@ class SimulatedEPaxos(val f: Int) extends SimulatedSystem {
 
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      epaxos.numClients -> {
+      epaxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, epaxos.numClients - 1)
+          clientId <- Gen.choose(0, epaxos.numTestClients - 1)
           clientPseudonym <- Gen.choose(0, 2)
           request <- Gen.oneOf(KeyValueStore.getOneOf(keys),
                                KeyValueStore.setOneOf(keyValues))

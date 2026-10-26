@@ -10,24 +10,24 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class Paxos(val f: Int) {
+class TestedPaxos(val f: Int) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = f + 1
-  val numLeaders = f + 1
-  val numAcceptors = 2 * f + 1
+  val numTestClients = f + 1
+  val numTestLeaders = f + 1
+  val numTestAcceptors = 2 * f + 1
 
   // Configuration.
   val config = Config[FakeTransport](
     f = f,
-    leaderAddresses = for (i <- 1 to numLeaders)
+    leaderAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Leader $i"),
-    acceptorAddresses = for (i <- 1 to numAcceptors)
+    acceptorAddresses = for (i <- 1 to numTestAcceptors)
       yield FakeTransportAddress(s"Acceptor $i")
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients)
+  val clients = for (i <- 1 to numTestClients)
     yield
       new Client[FakeTransport](
         FakeTransportAddress(s"Client $i"),
@@ -37,7 +37,7 @@ class Paxos(val f: Int) {
       )
 
   // Leaders.
-  val leaders = for (i <- 1 to numLeaders)
+  val leaders = for (i <- 1 to numTestLeaders)
     yield
       new Leader[FakeTransport](
         FakeTransportAddress(s"Leader $i"),
@@ -47,7 +47,7 @@ class Paxos(val f: Int) {
       )
 
   // Acceptors.
-  val acceptors = for (i <- 1 to numAcceptors)
+  val acceptors = for (i <- 1 to numTestAcceptors)
     yield
       new Acceptor[FakeTransport](
         FakeTransportAddress(s"Acceptor $i"),
@@ -66,12 +66,12 @@ object SimulatedPaxos {
 class SimulatedPaxos(val f: Int) extends SimulatedSystem {
   import SimulatedPaxos._
 
-  override type System = Paxos
+  override type System = TestedPaxos
   // The set of strings that are chosen in the current system.
   override type State = Set[String]
   override type Command = SimulatedPaxos.Command
 
-  override def newSystem(seed: Long): System = new Paxos(f)
+  override def newSystem(seed: Long): System = new TestedPaxos(f)
 
   override def getState(paxos: System): State = {
     val clientChosen = paxos.clients.flatMap(_.chosenValue).to[Set]
@@ -86,9 +86,9 @@ class SimulatedPaxos(val f: Int) extends SimulatedSystem {
   override def generateCommand(paxos: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      paxos.numClients -> {
+      paxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, paxos.numClients - 1)
+          clientId <- Gen.choose(0, paxos.numTestClients - 1)
           value <- Gen.listOfN(10, Gen.alphaLowerChar).map(_.mkString(""))
         } yield Propose(clientId, value)
       }
@@ -143,7 +143,7 @@ class SimulatedPaxos(val f: Int) extends SimulatedSystem {
   }
 
   private def commandToString(command: Command): String = {
-    val paxos = new Paxos(f)
+    val paxos = new TestedPaxos(f)
     command match {
       case Propose(clientIndex, value) =>
         val clientAddress = paxos.clients(clientIndex).address.address

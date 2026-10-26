@@ -13,31 +13,31 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class Scalog(val f: Int, numProxyReplicas: Int, pushSize: Int, seed: Long) {
+class TweenedScalog(val f: Int, numProxyReplicas: Int, pushSize: Int, seed: Long) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2
-  val numShards = f + 1
-  val numServersPerShard = f + 1
-  val numLeaders = f + 1
-  val numAcceptors = 2 * f + 1
-  val numReplicas = f + 1
+  val numTestClients = 2
+  val numTestShards = f + 1
+  val numTestServersPerShard = f + 1
+  val numTestLeaders = f + 1
+  val numTestAcceptors = 2 * f + 1
+  val numTestReplicas = f + 1
 
   val config = Config[FakeTransport](
     f = f,
-    serverAddresses = (1 to numShards).map(
+    serverAddresses = (1 to numTestShards).map(
       i =>
-        (1 to numServersPerShard)
+        (1 to numTestServersPerShard)
           .map(j => FakeTransportAddress(s"Server $i.$j"))
     ),
     aggregatorAddress = FakeTransportAddress("Aggregator"),
     leaderAddresses =
-      (1 to numLeaders).map(i => FakeTransportAddress(s"Leader $i")),
+      (1 to numTestLeaders).map(i => FakeTransportAddress(s"Leader $i")),
     leaderElectionAddresses =
-      (1 to numLeaders).map(i => FakeTransportAddress(s"LeaderElection $i")),
+      (1 to numTestLeaders).map(i => FakeTransportAddress(s"LeaderElection $i")),
     acceptorAddresses =
-      (1 to numAcceptors).map(i => FakeTransportAddress(s"Acceptor $i")),
-    replicaAddresses = (1 to numReplicas)
+      (1 to numTestAcceptors).map(i => FakeTransportAddress(s"Acceptor $i")),
+    replicaAddresses = (1 to numTestReplicas)
       .map(i => FakeTransportAddress(s"Replica $i")),
     proxyReplicaAddresses = (1 to numProxyReplicas).map(
       i => FakeTransportAddress(s"Proxy Replica $i")
@@ -45,7 +45,7 @@ class Scalog(val f: Int, numProxyReplicas: Int, pushSize: Int, seed: Long) {
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -155,7 +155,7 @@ class SimulatedScalog(val f: Int, numProxyReplicas: Int, pushSize: Int)
     extends SimulatedSystem {
   import SimulatedScalog._
 
-  override type System = Scalog
+  override type System = TweenedScalog
   // For every replica, we record the prefix of the log that has been executed.
   override type State = mutable.Buffer[Seq[frankenpaxos.scalog.Command]]
   override type Command = SimulatedScalog.Command
@@ -166,7 +166,7 @@ class SimulatedScalog(val f: Int, numProxyReplicas: Int, pushSize: Int)
   var valueChosen: Boolean = false
 
   override def newSystem(seed: Long): System =
-    new Scalog(f, numProxyReplicas, pushSize, seed)
+    new TweenedScalog(f, numProxyReplicas, pushSize, seed)
 
   override def getState(scalog: System): State = {
     val logs = mutable.Buffer[Seq[frankenpaxos.scalog.Command]]()
@@ -183,9 +183,9 @@ class SimulatedScalog(val f: Int, numProxyReplicas: Int, pushSize: Int)
   override def generateCommand(scalog: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Write.
-      scalog.numClients -> {
+      scalog.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, scalog.numClients - 1)
+          clientId <- Gen.choose(0, scalog.numTestClients - 1)
           request <- Gen.alphaLowerStr.filter(_.size > 0)
         } yield Write(clientId, clientPseudonym = 0, request)
 

@@ -14,22 +14,22 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class VanillaMencius(val f: Int, seed: Long) {
+class TweenedVanillaMencius(val f: Int, seed: Long) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2 * f + 1
-  val numServers = 2 * f + 1
+  val numTestClients = 2 * f + 1
+  val numTestServers = 2 * f + 1
 
   val config = Config[FakeTransport](
     f = f,
     serverAddresses =
-      (1 to numServers).map(i => FakeTransportAddress(s"Server $i")),
+      (1 to numTestServers).map(i => FakeTransportAddress(s"Server $i")),
     heartbeatAddresses =
-      (1 to numServers).map(i => FakeTransportAddress(s"Heartbeat $i"))
+      (1 to numTestServers).map(i => FakeTransportAddress(s"Heartbeat $i"))
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -74,7 +74,7 @@ object SimulatedVanillaMencius {
 class SimulatedVanillaMencius(val f: Int) extends SimulatedSystem {
   import SimulatedVanillaMencius._
 
-  override type System = VanillaMencius
+  override type System = TweenedVanillaMencius
   // For every server, we record the prefix of the log that has been executed.
   override type State = mutable.Buffer[Seq[CommandOrNoop]]
   override type Command = SimulatedVanillaMencius.Command
@@ -85,7 +85,7 @@ class SimulatedVanillaMencius(val f: Int) extends SimulatedSystem {
   var valueChosen: Boolean = false
 
   override def newSystem(seed: Long): System =
-    new VanillaMencius(f, seed)
+    new TweenedVanillaMencius(f, seed)
 
   override def getState(mencius: System): State = {
     val logs = mutable.Buffer[Seq[CommandOrNoop]]()
@@ -113,9 +113,9 @@ class SimulatedVanillaMencius(val f: Int) extends SimulatedSystem {
   override def generateCommand(mencius: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Write.
-      mencius.numClients -> {
+      mencius.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, mencius.numClients - 1)
+          clientId <- Gen.choose(0, mencius.numTestClients - 1)
           request <- Gen.alphaLowerStr.filter(_.size > 0)
         } yield Write(clientId, clientPseudonym = 0, request)
 

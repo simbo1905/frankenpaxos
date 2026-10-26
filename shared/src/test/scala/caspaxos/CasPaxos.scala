@@ -15,24 +15,24 @@ import scala.collection.mutable
 import scala.concurrent.Future
 import scala.util.Try
 
-class CasPaxos(val f: Int, seed: Long) {
+class TweenedCasPaxos(val f: Int, seed: Long) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2 * f + 1
-  val numLeaders = f + 1
-  val numAcceptors = 2 * f + 1
+  val numTestClients = 2 * f + 1
+  val numTestLeaders = f + 1
+  val numTestAcceptors = 2 * f + 1
 
   // Configuration.
   val config = Config[FakeTransport](
     f = f,
-    leaderAddresses = for (i <- 1 to numLeaders)
+    leaderAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Leader $i"),
-    acceptorAddresses = for (i <- 1 to numAcceptors)
+    acceptorAddresses = for (i <- 1 to numTestAcceptors)
       yield FakeTransportAddress(s"Acceptor $i")
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -45,7 +45,7 @@ class CasPaxos(val f: Int, seed: Long) {
   }
 
   // Leaders.
-  val leaders = for (i <- 1 to numLeaders) yield {
+  val leaders = for (i <- 1 to numTestLeaders) yield {
     new Leader[FakeTransport](
       address = FakeTransportAddress(s"Leader $i"),
       transport = transport,
@@ -56,7 +56,7 @@ class CasPaxos(val f: Int, seed: Long) {
     )
   }
   // Acceptors.
-  val acceptors = for (i <- 1 to numAcceptors) yield {
+  val acceptors = for (i <- 1 to numTestAcceptors) yield {
     new Acceptor[FakeTransport](
       address = FakeTransportAddress(s"Acceptor $i"),
       transport = transport,
@@ -68,7 +68,7 @@ class CasPaxos(val f: Int, seed: Long) {
   }
 
   // Futures registered from client proposals.
-  val futures = mutable.Buffer[Future[Set[Int]]]()
+  val proposeFutures = mutable.Buffer[Future[Set[Int]]]()
 }
 
 object SimulatedCasPaxos {
@@ -80,7 +80,7 @@ object SimulatedCasPaxos {
 class SimulatedCasPaxos(val f: Int) extends SimulatedSystem {
   import SimulatedCasPaxos._
 
-  override type System = CasPaxos
+  override type System = TweenedCasPaxos
   // We store the set of all int sets received by clients.
   override type State = Set[Set[Int]]
   override type Command = SimulatedCasPaxos.Command
@@ -88,10 +88,10 @@ class SimulatedCasPaxos(val f: Int) extends SimulatedSystem {
   // True if some value has been chosen in some execution of the system.
   var valueChosen: Boolean = false
 
-  override def newSystem(seed: Long): System = new CasPaxos(f, seed)
+  override def newSystem(seed: Long): System = new TweenedCasPaxos(f, seed)
 
   override def getState(caspaxos: System): State = {
-    val sets = caspaxos.futures
+    val sets = caspaxos.proposeFutures
       .flatMap(future => {
         future.value match {
           case Some(scala.util.Success(xs)) => Some(xs)
@@ -110,9 +110,9 @@ class SimulatedCasPaxos(val f: Int) extends SimulatedSystem {
   override def generateCommand(caspaxos: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      caspaxos.numClients -> {
+      caspaxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, caspaxos.numClients - 1)
+          clientId <- Gen.choose(0, caspaxos.numTestClients - 1)
           ints <- Gen.containerOf[Set, Int](Gen.chooseNum(0, 1000000))
         } yield Propose(clientId, ints)
       }
@@ -132,7 +132,7 @@ class SimulatedCasPaxos(val f: Int) extends SimulatedSystem {
   override def runCommand(caspaxos: System, command: Command): System = {
     command match {
       case Propose(clientId, ints) =>
-        caspaxos.futures += caspaxos.clients(clientId).propose(ints)
+        caspaxos.proposeFutures += caspaxos.clients(clientId).propose(ints)
       case TransportCommand(command) =>
         FakeTransport.runCommand(caspaxos.transport, command)
     }

@@ -19,32 +19,32 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class SimpleBPaxos(val f: Int, seed: Long) {
+class TweenedSimpleBPaxos(val f: Int, seed: Long) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2 * f + 1
-  val numLeaders = f + 2
-  val numDepServiceNodes = 2 * f + 1
-  val numAcceptors = 2 * f + 1
-  val numReplicas = f + 1
+  val numTestClients = 2 * f + 1
+  val numTestLeaders = f + 2
+  val numTestDepServiceNodes = 2 * f + 1
+  val numTestAcceptors = 2 * f + 1
+  val numTestReplicas = f + 1
 
   // Configuration.
   val config = Config[FakeTransport](
     f = f,
-    leaderAddresses = for (i <- 1 to numLeaders)
+    leaderAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Leader $i"),
-    proposerAddresses = for (i <- 1 to numLeaders)
+    proposerAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Proposer $i"),
-    depServiceNodeAddresses = for (i <- 1 to numDepServiceNodes)
+    depServiceNodeAddresses = for (i <- 1 to numTestDepServiceNodes)
       yield FakeTransportAddress(s"Dep Service Node $i"),
-    acceptorAddresses = for (i <- 1 to numAcceptors)
+    acceptorAddresses = for (i <- 1 to numTestAcceptors)
       yield FakeTransportAddress(s"Acceptor $i"),
-    replicaAddresses = for (i <- 1 to numReplicas)
+    replicaAddresses = for (i <- 1 to numTestReplicas)
       yield FakeTransportAddress(s"Replica $i")
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -59,7 +59,7 @@ class SimpleBPaxos(val f: Int, seed: Long) {
   }
 
   // Leaders.
-  val leaders = for (i <- 1 to numLeaders) yield {
+  val leaders = for (i <- 1 to numTestLeaders) yield {
     new Leader[FakeTransport](
       address = FakeTransportAddress(s"Leader $i"),
       transport = transport,
@@ -73,7 +73,7 @@ class SimpleBPaxos(val f: Int, seed: Long) {
   }
 
   // Proposers.
-  val proposers = for (i <- 1 to numLeaders) yield {
+  val proposers = for (i <- 1 to numTestLeaders) yield {
     new Proposer[FakeTransport](
       address = FakeTransportAddress(s"Proposer $i"),
       transport = transport,
@@ -88,7 +88,7 @@ class SimpleBPaxos(val f: Int, seed: Long) {
   }
 
   // DepServiceNodes.
-  val depServiceNodes = for (i <- 1 to numDepServiceNodes) yield {
+  val depServiceNodes = for (i <- 1 to numTestDepServiceNodes) yield {
     new DepServiceNode[FakeTransport](
       address = FakeTransportAddress(s"Dep Service Node $i"),
       transport = transport,
@@ -101,7 +101,7 @@ class SimpleBPaxos(val f: Int, seed: Long) {
   }
 
   // Acceptors.
-  val acceptors = for (i <- 1 to numAcceptors) yield {
+  val acceptors = for (i <- 1 to numTestAcceptors) yield {
     new Acceptor[FakeTransport](
       address = FakeTransportAddress(s"Acceptor $i"),
       transport = transport,
@@ -113,7 +113,7 @@ class SimpleBPaxos(val f: Int, seed: Long) {
   }
 
   // Replicas.
-  val replicas = for (i <- 1 to numReplicas) yield {
+  val replicas = for (i <- 1 to numTestReplicas) yield {
     new Replica[FakeTransport](
       address = FakeTransportAddress(s"Replica $i"),
       transport = transport,
@@ -147,7 +147,7 @@ object SimulatedSimpleBPaxos {
 class SimulatedSimpleBPaxos(val f: Int) extends SimulatedSystem {
   import SimulatedSimpleBPaxos._
 
-  override type System = SimpleBPaxos
+  override type System = TweenedSimpleBPaxos
   // For each vertex id, we record the set of chosen VoteValues. If everything
   // is correct, thevery set should contain at most one vote value.
   override type State = Map[VertexId, Set[VoteValueProto]]
@@ -156,7 +156,7 @@ class SimulatedSimpleBPaxos(val f: Int) extends SimulatedSystem {
   // True if some value has been chosen in some execution of the system.
   var valueChosen: Boolean = false
 
-  override def newSystem(seed: Long): System = new SimpleBPaxos(f, seed)
+  override def newSystem(seed: Long): System = new TweenedSimpleBPaxos(f, seed)
 
   override def getState(bpaxos: System): State = {
     // Merge two States together, taking a pairwise union.
@@ -190,9 +190,9 @@ class SimulatedSimpleBPaxos(val f: Int) extends SimulatedSystem {
 
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      bpaxos.numClients -> {
+      bpaxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, bpaxos.numClients - 1)
+          clientId <- Gen.choose(0, bpaxos.numTestClients - 1)
           clientPseudonym <- Gen.choose(0, 2)
           request <- Gen.oneOf(KeyValueStore.getOneOf(keys),
                                KeyValueStore.setOneOf(keyValues))

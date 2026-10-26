@@ -10,20 +10,20 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class Craq(val f: Int, batchSize: Int, seed: Long) {
+class TweenedCraq(val f: Int, batchSize: Int, seed: Long) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2
-  val numChainNodes = 2 * f + 1
+  val numTestClients = 2
+  val numTestChainNodes = 2 * f + 1
 
   val config = Config[FakeTransport](
     f,
     chainNodeAddresses =
-      (1 to numChainNodes).map(i => FakeTransportAddress(s"ChainNode $i"))
+      (1 to numTestChainNodes).map(i => FakeTransportAddress(s"ChainNode $i"))
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -73,7 +73,7 @@ object SimulatedCraq {
 class SimulatedCraq(val f: Int, batchSize: Int) extends SimulatedSystem {
   import SimulatedCraq._
 
-  override type System = Craq
+  override type System = TweenedCraq
   // For every replica, we record the prefix of the log that has been executed.
   override type State = mutable.Buffer[mutable.Map[String, String]]
   override type Command = SimulatedCraq.Command
@@ -83,7 +83,7 @@ class SimulatedCraq(val f: Int, batchSize: Int) extends SimulatedSystem {
   // liveness. If no value is every chosen, then clearly something is wrong.
   var valueChosen: Boolean = false
 
-  override def newSystem(seed: Long): System = new Craq(f, batchSize, seed)
+  override def newSystem(seed: Long): System = new TweenedCraq(f, batchSize, seed)
 
   override def getState(craq: System): State = {
     val logs = mutable.Buffer[mutable.Map[String, String]]()
@@ -99,18 +99,18 @@ class SimulatedCraq(val f: Int, batchSize: Int) extends SimulatedSystem {
   override def generateCommand(craq: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Write.
-      craq.numClients * 3 -> {
+      craq.numTestClients * 3 -> {
         for {
-          clientId <- Gen.choose(0, craq.numClients - 1)
+          clientId <- Gen.choose(0, craq.numTestClients - 1)
           key <- Gen.alphaLowerStr.filter(_.size > 0)
           value <- Gen.alphaLowerStr.filter(_.size > 0)
         } yield Write(clientId, clientPseudonym = 0, key, value)
 
       },
       // Read.
-      craq.numClients -> {
+      craq.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, craq.numClients - 1)
+          clientId <- Gen.choose(0, craq.numTestClients - 1)
           key <- Gen.alphaLowerStr.filter(_.size > 0)
         } yield Read(clientId, clientPseudonym = 0, key)
       }

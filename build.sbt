@@ -31,14 +31,14 @@ lazy val frankenpaxos = crossProject(JSPlatform, JVMPlatform)
       "io.prometheus" % "simpleclient" % "0.6.0",
       "io.prometheus" % "simpleclient_hotspot" % "0.6.0",
       "io.prometheus" % "simpleclient_httpserver" % "0.6.0",
-      "org.jgrapht" % "jgrapht-core" % "1.1.0",
       "org.scala-graph" %% "graph-core" % "1.12.5",
       "org.scala-graph" %%% "graph-core" % "1.12.5",
       "org.scala-js" %% "scalajs-library" % scalaJSVersion % "provided",
       "org.scala-js" %% "scalajs-stubs" % scalaJSVersion % "provided",
-      "org.scalacheck" %% "scalacheck" % "1.14.0",
-      "org.scalactic" %% "scalactic" % "3.0.5",
-      "org.scalatest" %% "scalatest" % "3.0.5"
+      "org.scala-js" %% "scalajs-test-interface" % scalaJSVersion % "test",
+      "org.scalacheck" %%% "scalacheck" % "1.14.0",
+      "org.scalactic" %%% "scalactic" % "3.0.5",
+      "org.scalatest" %%% "scalatest" % "3.0.5"
     ),
     PB.targets in Compile := Seq(
       scalapb.gen() -> (sourceManaged in Compile).value
@@ -53,6 +53,14 @@ lazy val frankenpaxos = crossProject(JSPlatform, JVMPlatform)
     testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
     parallelExecution in Benchmark := false,
     logBuffered in Benchmark := false
+  )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "org.jgrapht" % "jgrapht-core" % "1.1.0",
+      "org.scalacheck" %% "scalacheck" % "1.14.0",
+      "org.scalactic" %% "scalactic" % "3.0.5",
+      "org.scalatest" %% "scalatest" % "3.0.5"
+    )
   )
   .jsSettings(
     libraryDependencies += "org.scala-js" %%% "scalajs-java-time" % "0.2.5"

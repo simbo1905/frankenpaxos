@@ -9,24 +9,24 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class FastPaxos(val f: Int) {
+class TestedFastPaxos(val f: Int) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = f + 1
-  val numLeaders = f + 1
-  val numAcceptors = 2 * f + 1
+  val numTestClients = f + 1
+  val numTestLeaders = f + 1
+  val numTestAcceptors = 2 * f + 1
 
   // Configuration.
   val config = Config[FakeTransport](
     f = f,
-    leaderAddresses = for (i <- 1 to numLeaders)
+    leaderAddresses = for (i <- 1 to numTestLeaders)
       yield FakeTransportAddress(s"Leader $i"),
-    acceptorAddresses = for (i <- 1 to numAcceptors)
+    acceptorAddresses = for (i <- 1 to numTestAcceptors)
       yield FakeTransportAddress(s"Acceptor $i")
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients)
+  val clients = for (i <- 1 to numTestClients)
     yield
       new Client[FakeTransport](FakeTransportAddress(s"Client $i"),
                                 transport,
@@ -34,7 +34,7 @@ class FastPaxos(val f: Int) {
                                 config)
 
   // Leaders.
-  val leaders = for (i <- 1 to numLeaders)
+  val leaders = for (i <- 1 to numTestLeaders)
     yield
       new Leader[FakeTransport](FakeTransportAddress(s"Leader $i"),
                                 transport,
@@ -42,7 +42,7 @@ class FastPaxos(val f: Int) {
                                 config)
 
   // Acceptors.
-  val acceptors = for (i <- 1 to numAcceptors)
+  val acceptors = for (i <- 1 to numTestAcceptors)
     yield
       new Acceptor[FakeTransport](FakeTransportAddress(s"Acceptor $i"),
                                   transport,
@@ -59,12 +59,12 @@ object SimulatedFastPaxos {
 class SimulatedFastPaxos(val f: Int) extends SimulatedSystem {
   import SimulatedFastPaxos._
 
-  override type System = FastPaxos
+  override type System = TestedFastPaxos
   // The set of chosen values.
   override type State = Set[String]
   override type Command = SimulatedFastPaxos.Command
 
-  override def newSystem(seed: Long): System = new FastPaxos(f)
+  override def newSystem(seed: Long): System = new TestedFastPaxos(f)
 
   override def getState(fastPaxos: System): State = {
     // TODO(mwhittaker): Add values chosen by acceptors.
@@ -79,9 +79,9 @@ class SimulatedFastPaxos(val f: Int) extends SimulatedSystem {
   override def generateCommand(fastPaxos: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      fastPaxos.numClients -> {
+      fastPaxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, fastPaxos.numClients - 1)
+          clientId <- Gen.choose(0, fastPaxos.numTestClients - 1)
           value <- Gen.listOfN(10, Gen.alphaLowerChar).map(_.mkString(""))
         } yield Propose(clientId, value)
       }
@@ -136,7 +136,7 @@ class SimulatedFastPaxos(val f: Int) extends SimulatedSystem {
   }
 
   def commandToString(command: Command): String = {
-    val fastPaxos = new FastPaxos(f)
+    val fastPaxos = new TestedFastPaxos(f)
     command match {
       case Propose(clientIndex, value) =>
         val clientAddress = fastPaxos.clients(clientIndex).address.address

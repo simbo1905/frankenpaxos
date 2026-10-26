@@ -14,26 +14,26 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import scala.collection.mutable
 
-class MatchmakerPaxos(val f: Int, seed: Long) {
+class TweenedMatchmakerPaxos(val f: Int, seed: Long) {
   val logger = new FakeLogger()
   val transport = new FakeTransport(logger)
-  val numClients = 2
-  val numLeaders = f + 1
-  val numMatchmakers = 2 * f + 1
-  val numAcceptors = 2 * (f + 1) + 1
+  val numTestClients = 2
+  val numTestLeaders = f + 1
+  val numTestMatchmakers = 2 * f + 1
+  val numTestAcceptors = 2 * (f + 1) + 1
 
   val config = Config[FakeTransport](
     f = f,
     leaderAddresses =
-      (1 to numLeaders).map(i => FakeTransportAddress(s"Leader $i")),
+      (1 to numTestLeaders).map(i => FakeTransportAddress(s"Leader $i")),
     matchmakerAddresses =
-      (1 to numMatchmakers).map(i => FakeTransportAddress(s"Matchmaker $i")),
+      (1 to numTestMatchmakers).map(i => FakeTransportAddress(s"Matchmaker $i")),
     acceptorAddresses =
-      (1 to numAcceptors).map(i => FakeTransportAddress(s"Acceptor $i"))
+      (1 to numTestAcceptors).map(i => FakeTransportAddress(s"Acceptor $i"))
   )
 
   // Clients.
-  val clients = for (i <- 1 to numClients) yield {
+  val clients = for (i <- 1 to numTestClients) yield {
     new Client[FakeTransport](
       address = FakeTransportAddress(s"Client $i"),
       transport = transport,
@@ -93,7 +93,7 @@ object SimulatedMatchmakerPaxos {
 class SimulatedMatchmakerPaxos(val f: Int) extends SimulatedSystem {
   import SimulatedMatchmakerPaxos._
 
-  override type System = MatchmakerPaxos
+  override type System = TweenedMatchmakerPaxos
   // We record the set of all values that people learn are chosen.
   override type State = Set[String]
   override type Command = SimulatedMatchmakerPaxos.Command
@@ -104,7 +104,7 @@ class SimulatedMatchmakerPaxos(val f: Int) extends SimulatedSystem {
   var valueChosen: Boolean = false
 
   override def newSystem(seed: Long): System =
-    new MatchmakerPaxos(f, seed)
+    new TweenedMatchmakerPaxos(f, seed)
 
   override def getState(paxos: System): State = {
     val chosens = mutable.Set[String]()
@@ -133,9 +133,9 @@ class SimulatedMatchmakerPaxos(val f: Int) extends SimulatedSystem {
   override def generateCommand(paxos: System): Option[Command] = {
     val subgens = mutable.Buffer[(Int, Gen[Command])](
       // Propose.
-      paxos.numClients -> {
+      paxos.numTestClients -> {
         for {
-          clientId <- Gen.choose(0, paxos.numClients - 1)
+          clientId <- Gen.choose(0, paxos.numTestClients - 1)
           request <- Gen.alphaLowerStr
         } yield Propose(clientId, request)
       }

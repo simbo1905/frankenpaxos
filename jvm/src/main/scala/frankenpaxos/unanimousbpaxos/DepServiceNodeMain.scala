@@ -7,7 +7,6 @@ import frankenpaxos.NettyTcpAddress
 import frankenpaxos.NettyTcpTransport
 import frankenpaxos.PrintLogger
 import frankenpaxos.PrometheusUtil
-import frankenpaxos.depgraph.JgraphtDependencyGraph
 import frankenpaxos.statemachine
 import frankenpaxos.statemachine.KeyValueStore
 import frankenpaxos.statemachine.StateMachine

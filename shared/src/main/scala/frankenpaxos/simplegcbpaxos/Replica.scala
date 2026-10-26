@@ -11,7 +11,6 @@ import frankenpaxos.Util
 import frankenpaxos.clienttable.ClientTable
 import frankenpaxos.clienttable.ClientTableProto
 import frankenpaxos.depgraph.DependencyGraph
-import frankenpaxos.depgraph.JgraphtDependencyGraph
 import frankenpaxos.monitoring.Collectors
 import frankenpaxos.monitoring.Counter
 import frankenpaxos.monitoring.Gauge

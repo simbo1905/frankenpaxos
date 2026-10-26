@@ -13,7 +13,6 @@ object DependencyGraphBenchmark extends Bench.ForkedTime {
   override def aggregator: Aggregator[Double] = Aggregator.average
 
   sealed trait GraphType
-  case object Jgrapht extends GraphType
   case object ScalaGraph extends GraphType
   case object Tarjan extends GraphType
   case object IncrementalTarjan extends GraphType
@@ -22,10 +21,6 @@ object DependencyGraphBenchmark extends Bench.ForkedTime {
       t: GraphType
   ): DependencyGraph[VertexId, Unit, FakeCompactSet[VertexId]] = {
     t match {
-      case Jgrapht =>
-        new JgraphtDependencyGraph[VertexId, Unit, FakeCompactSet[
-          VertexId
-        ]](new FakeCompactSet[VertexId]())
       case ScalaGraph =>
         new ScalaGraphDependencyGraph[VertexId, Unit, FakeCompactSet[
           VertexId
@@ -54,8 +49,7 @@ object DependencyGraphBenchmark extends Bench.ForkedTime {
 
     val params =
       for {
-        graphType <- Gen.enumeration("graph_type")(Jgrapht,
-                                                   Tarjan,
+        graphType <- Gen.enumeration("graph_type")(Tarjan,
                                                    IncrementalTarjan)
         numCommands <- Gen.enumeration("num_commands")(1000)
         depSize <- Gen.enumeration("dep_size")(1, 10, 25)
@@ -84,8 +78,7 @@ object DependencyGraphBenchmark extends Bench.ForkedTime {
 
     val params =
       for {
-        graphType <- Gen.enumeration("graph_type")(Jgrapht,
-                                                   Tarjan,
+        graphType <- Gen.enumeration("graph_type")(Tarjan,
                                                    IncrementalTarjan)
         numCommands <- Gen.enumeration("num_commands")(1000)
         cycleSize <- Gen.enumeration("cycle_size")(1, 10, 25)
@@ -122,7 +115,6 @@ object DependencyGraphBenchmark extends Bench.ForkedTime {
     val params =
       for {
         graphType <- Gen.enumeration("graph_type")(
-          Jgrapht,
           IncrementalTarjan,
           Tarjan
         )
@@ -158,7 +150,6 @@ object DependencyGraphBenchmark extends Bench.ForkedTime {
     val params =
       for {
         graphType <- Gen.enumeration("graph_type")(
-          Jgrapht,
           IncrementalTarjan,
           Tarjan
         )
